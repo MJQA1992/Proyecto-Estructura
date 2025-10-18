@@ -18,13 +18,6 @@ struct Personaje {
         Personaje *siguiente;
     };
 
-//Estructura LISTA
-struct Lista {
-
-    Personaje *inicialPtr;
-
-    };
-
 //Funcion para revisar si es constituida por espacios en blancos
 bool validacionEspacios(const string& str) {
 
