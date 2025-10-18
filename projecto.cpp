@@ -25,7 +25,7 @@ bool validacionEspacios(const string& str) {
 
     for (char c : str) //Recorre caracter a caracter en la cadena para verifiicar si constituido de espacios
 
-        if (!isspace(static_cast<unsigned char>(c)))
+        if (!isspace(static_cast<unsigned char>(c))) //Cambio adrede de tipo ya que si es un char con signo puede causar problemas
 
             return false;
     return true;
