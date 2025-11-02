@@ -15,7 +15,7 @@ struct Personaje {
         string nombre;
         string estado;
         int vida;
-        Personaje *siguiente;
+        Personaje *siguiente =nullptr;
     };
 
 
@@ -47,23 +47,16 @@ bool validacionNumeros(string str) {
 //Agregar personajes por parametro direccion del tope de la lista dada
 void agregarPersonaje (Personaje*& cabeza ) {
             Personaje *nuevoPtr = new Personaje();
-            nuevoPtr->siguiente = nullptr;
-
             // Validacion ID
             do {
-
                 cout << "Introduzca el ID del personaje: " << endl;
                 cin >> nuevoPtr->identificador;
-
                 if (cin.fail()) { //cin.fail verifica si es del tipo int o  no
-
                     cin.clear(); // Limpieza buffer
-                    cin.ignore(numeric_limits<streamsize>::max(), '\n'); //Prevenir errores de input
                     cout <<"ERROR. Entrada de dato no valida." << endl;
                 }
                 else{
-
-                     cin.ignore(numeric_limits<streamsize>::max(), '\n'); //Prevenir errores de input
+                    cin.clear(); // Limpieza buffer
                      cout << "El ID introducido es: " << nuevoPtr->identificador << endl;
                      break;
                 }
