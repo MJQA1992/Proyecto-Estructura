@@ -58,12 +58,14 @@ void agregarPersonaje (Personaje*& cabeza ) {
         // Reiniciar el ID a un valor no válido para el control de errores inicial
         nuevoPtr->identificador = -1; 
         
-        if (!(cin >> nuevoPtr->identificador)) { // 1. Validar que sea entero
+        if (!(cin >> nuevoPtr->identificador)) { // 1. Validar que sea INT
+            cin.clear(); 
+            cin.ignore(numeric_limits<streamsize>::max(), '\n'); 
             cout << "ERROR. Entrada de dato no valida (debe ser un numero entero)." << endl;
         } 
         else {
-            break; 
-            
+            cin.ignore(numeric_limits<streamsize>::max(), '\n'); 
+
             // 2. Validar Unicidad del ID
             if (buscarPersonajePorID(cabeza, nuevoPtr->identificador)) {
                 cout << "ERROR. El ID " << nuevoPtr->identificador << " ya existe. Introduzca uno diferente." << endl;
@@ -86,19 +88,15 @@ void agregarPersonaje (Personaje*& cabeza ) {
         getline(cin, nuevoPtr->clase);
 
         if (nuevoPtr->clase.empty()) {
-
             cout << "ERROR: La CLASE no puede estar vacia.\n";
         }
         else if (validacionEspacios(nuevoPtr->clase)) {
-
             cout << "ERROR. La CLASE no puede contener solo espacios.\n";
         }
         else if (validacionNumeros(nuevoPtr->clase)) {
-
             cout << "ERROR. La CLASE no puede ser solo de numeros.\n";
         }
         else {
-
             cout << "La CLASE introducida es: " << nuevoPtr->clase << endl;
             break;
         }
@@ -111,19 +109,15 @@ void agregarPersonaje (Personaje*& cabeza ) {
         getline(cin, nuevoPtr->faccion);
 
         if (nuevoPtr->faccion.empty()) {
-
             cout << "ERROR. La FACCION no puede estar vacia.\n";
         }
         else if (validacionEspacios(nuevoPtr->faccion)) {
-
             cout << "ERROR. La FACCION no puede contener solo espacios.\n";
         }
         else if (validacionNumeros(nuevoPtr->faccion)) {
-
             cout << "ERROR. La FACCION no puede ser solo de numeros.\n";
         }
         else {
-
             cout << "La FACCION introducida es: " << nuevoPtr->faccion << endl;
             break;
         }
@@ -136,19 +130,15 @@ void agregarPersonaje (Personaje*& cabeza ) {
         getline(cin, nuevoPtr->nombre);
 
         if (nuevoPtr->nombre.empty()) {
-
             cout << "ERROR. El NOMBRE no puede estar vacio.\n";
         }
         else if (validacionEspacios(nuevoPtr->nombre)) {
-
             cout << "ERROR. El NOMBRE no puede contener solo espacios.\n";
         }
         else if (validacionNumeros(nuevoPtr->nombre)) {
-
             cout << "ERROR. El NOMBRE no puede ser solo de numeros.\n";
         }
         else {
-
             cout << "El NOMBRE introducido es: " << nuevoPtr->nombre << endl;
             break;
         }
@@ -161,19 +151,15 @@ void agregarPersonaje (Personaje*& cabeza ) {
         getline(cin, nuevoPtr->estado);
 
         if (nuevoPtr->estado.empty()) {
-
             cout << "ERROR. El ESTADO no puede estar vacio.\n";
         }
         else if (validacionEspacios(nuevoPtr->estado)) {
-
             cout << "ERROR. El ESTADO no puede contener solo espacios.\n";
         }
         else if (validacionNumeros(nuevoPtr->estado)) {
-
             cout << "ERROR. El ESTADO no puede ser solo de numeros.\n";
         }
         else {
-
             cout << "El ESTADO introducido es: " << nuevoPtr->estado << endl;
             break;
         }
@@ -185,8 +171,8 @@ void agregarPersonaje (Personaje*& cabeza ) {
         cout << "Introduzca los PUNTOS DE VIDA del personaje: " << endl;
         if (!(cin >> nuevoPtr->vida)) {
 
-            cin.clear(); // Limpieza buffer
-            cin.ignore(numeric_limits<streamsize>::max(), '\n'); //Prevenir errores de input
+            cin.clear(); 
+            cin.ignore(numeric_limits<streamsize>::max(), '\n'); 
             cout <<"ERROR. Entrada de PUNTOS DE VIDA no valido." << endl;
         }
         else if (nuevoPtr->vida < 0) {
@@ -196,7 +182,7 @@ void agregarPersonaje (Personaje*& cabeza ) {
         }
         else{
 
-            cin.ignore(numeric_limits<streamsize>::max(), '\n'); //Prevenir errores de input
+            cin.ignore(numeric_limits<streamsize>::max(), '\n'); 
             cout << "Los PUNTOS DE VIDA introducidos son: " << nuevoPtr->vida << endl;
             break;
         }
