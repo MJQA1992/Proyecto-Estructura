@@ -5,7 +5,7 @@
 
 using namespace std;
 
-// TDA PERSONAJES
+// Estructura PERSONAJES
 struct Personaje {
     int identificador ;
     string clase;
@@ -16,7 +16,7 @@ struct Personaje {
     Personaje *siguiente;
 };
 
-// TDA IMPLEMENTOS
+// Estructura IMPLEMENTOS
 struct Implemento {
     int idImplemento;
     string nombre;
@@ -24,7 +24,7 @@ struct Implemento {
     Implemento *siguiente;
 };
 
-// TDA ESTACIONES
+// Estructura ESTACIONES
 struct Estacion {
     int idEstacion;
     string nombre;
@@ -347,7 +347,6 @@ void personajeModificar(Personaje*& cabeza, int seleccion) {
                     if (nuevo_valor_int <= 0) {
                         cout << "ERROR. El ID debe ser un numero positivo." << endl;
                     } 
-                    // Validar Unicidad
                     else if (nuevo_valor_int != actualPtr->identificador && 
                              buscarPersonajePorID(cabeza, nuevo_valor_int)) {
                         cout << "ERROR. El ID " << nuevo_valor_int << " ya existe. Introduzca uno diferente." << endl;
@@ -362,7 +361,7 @@ void personajeModificar(Personaje*& cabeza, int seleccion) {
             break;
         }
 
-        case 2: case 3: case 4: case 5: { // Modificar String fields
+        case 2: case 3: case 4: case 5: { // Modificar String 
             string campo_nombre = (campo == 2) ? "CLASE" : (campo == 3) ? "FACCION" : (campo == 4) ? "NOMBRE" : "ESTADO";
             string* campo_ptr = (campo == 2) ? &actualPtr->clase : (campo == 3) ? &actualPtr->faccion : (campo == 4) ? &actualPtr->nombre : &actualPtr->estado;
             
