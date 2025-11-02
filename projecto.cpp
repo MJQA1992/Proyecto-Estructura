@@ -18,35 +18,34 @@ struct Personaje {
         Personaje *siguiente;
     };
 
-//Funcion para revisar si es constituida por espacios en blancos
+
 bool validacionEspacios(string str) {
     if (str.empty()){
         return false;
     } else {
-        for (char c : str) //Recorre caracter a caracter en la cadena para verifiicar si constituido de espacios
-        if (c != ' ') //Cambio adrede de tipo ya que si es un char con signo puede causar problemas
+        for (char c : str)
+        if (c != ' ')
             return false;
         return true;
     }
 
 }
 
-//Funcion para revisar si es constituida de numeros
-bool validacionNumeros(const string& str) {
+bool validacionNumeros(string str) {
+    if (str.empty()){
+        return false;
+    } else {
+        for (char c : str)
+            if (!isdigit(c)) 
+                return false;
+        return true;
+    }
 
-    if (str.empty()) return false;
 
-    for (char c : str) //REcorre caracter a caracter en la cadena para verificar si esta constituido de numeros
-
-        if (!isdigit(static_cast<unsigned char>(c)))
-
-            return false;
-    return true;
 }
 
 //Agregar personajes por parametro direccion del tope de la lista dada
 void agregarPersonaje (Personaje*& cabeza ) {
-
             Personaje *nuevoPtr = new Personaje();
             nuevoPtr->siguiente = nullptr;
 
