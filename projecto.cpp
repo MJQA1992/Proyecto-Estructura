@@ -16,7 +16,7 @@ struct Personaje {
         string estado;
         int vida;
         Personaje *siguiente =nullptr;
-    };
+};
 
 
 bool validacionEspacios(string str) {
@@ -81,7 +81,6 @@ void agregarPersonaje (Personaje*& cabeza ) {
                     cout << "ERROR. La CLASE no puede ser solo de numeros.\n";
                 }
                 else {
-
                     cout << "La CLASE introducida es: " << nuevoPtr->clase << endl;
                     break;
                 }
@@ -167,52 +166,40 @@ void agregarPersonaje (Personaje*& cabeza ) {
 
                 cout << "Introduzca los PUNTOS DE VIDA del personaje: " << endl;
                 cin >> nuevoPtr->vida;
-
                 if (cin.fail()) { //cin.fail verifica si es del tipo int o  no
-
                     cin.clear(); // Limpieza buffer
-                    cin.ignore(numeric_limits<streamsize>::max(), '\n'); //Prevenir errores de input
                     cout <<"ERROR. Entrada de PUNTOS DE VIDA no valido." << endl;
+                } else{
+                    cout << "Los PUNTOS DE VIDA  introducidos son: " << nuevoPtr->vida << endl;
+                    break;
                 }
-            else{
-
-                     cin.ignore(numeric_limits<streamsize>::max(), '\n'); //Prevenir errores de input
-                     cout << "Los PUNTOS DE VIDA  introducidos son: " << nuevoPtr->vida << endl;
-                     break;
-                }
-            }while( true);
-
-            //Enlace con la lista
+            }   while( true);
             nuevoPtr->siguiente = cabeza; // Asignando nulo al final de la lista
             cabeza = nuevoPtr; // Asignando la nueva cabeza como el nuevo Personaje
     };
 
 //FUNCION PARA MOSTRAR LISTA
 void mostrarLista(Personaje*& cabeza){
-
         Personaje* temp = cabeza;
         if (temp == nullptr){
-
             cout << "Lista Vacia." << endl;
         }
         else {
             while (temp != nullptr ){
-
             cout << "ID: " << temp->identificador << "\nCLASE: " << temp->clase <<  "\nFACCION: "<<  temp->faccion << "\nNOMBRE: " << temp->nombre << "\nESTADO: " << temp->estado << "\nPUNTOS DE VIDA: " << temp->vida << "\n//*************************************//\n" << endl;
             temp = temp->siguiente;
         };
             cout << "Lista mostrada completamente." << endl;
         }
-        };
+ };
 
 // FUNCION PARA BORRAR TODA LA LISTA.
 void borrarLista(Personaje*& cabeza) {
 
     Personaje* actual = cabeza;
-
+    Personaje* temp;
     while (actual != nullptr) {
-
-        Personaje* temp = actual;
+        temp = actual;
         actual = actual->siguiente;
         cout << "Borrando al personaje: " << temp->nombre << " (ID: " << temp->identificador << ")." << endl ;
         delete temp;
@@ -248,7 +235,6 @@ int seleccion(Personaje*& cabeza) {
         if (cin.fail()) {
 
             cin.clear();
-            cin.ignore(numeric_limits<streamsize>::max(), '\n');
             cout << "ERROR. Debe ingresar un numero valido.\n";
         }
         else if (seleccion < 1 || seleccion > id) {
@@ -257,7 +243,6 @@ int seleccion(Personaje*& cabeza) {
         }
 
         else {
-            cin.ignore(numeric_limits<streamsize>::max(), '\n');
             break;
             }
         } while (true);
@@ -364,17 +349,23 @@ void personajeModificar(Personaje*& cabeza, int seleccion) {
         }
     }
 
-void mostrarMenu(Personaje*& lista){
+void mostrarMenu(){
+    cout <<"//******MENU*******// " << endl;
+    cout << "1. Crear personaje" << endl;
+    cout << "2. Modificar personaje" << endl;
+    cout << "3. Borrar personaje " << endl;
+    cout << "4. Borrar todos los personajes" << endl;
+    cout << "5. Mostrar lista" << endl;
+    cout << "6. Salir "<< endl;
+    cout << "Seleccione una opcion: " << endl;
+}
+
+int main() {
+
+    Personaje* lista = nullptr;
     int campo = -1;
     do {
-
-        cout <<"//******MENU*******// " << endl;
-        cout << "1. Crear personaje" << endl;
-        cout << "2. Modificar personaje" << endl;
-        cout << "3. Borrar personaje " << endl;
-        cout << "4. Borrar todos los personajes" << endl;
-        cout << "5. Mostrar lista" << endl;
-        cout << "6. Salir "<< endl;
+        mostrarMenu();
         cin >> campo;
         cin.clear(); // limpiando bufer
         cin.ignore(numeric_limits<streamsize>::max(), '\n');
@@ -405,13 +396,7 @@ void mostrarMenu(Personaje*& lista){
                 break;
             }
         } while( campo !=6 );
-    }
 
-int main() {
-
-        Personaje* lista = nullptr;
-
-        mostrarMenu(lista);
 
         }
 
