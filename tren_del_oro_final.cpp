@@ -1,25 +1,7 @@
 /*===================================================================
-  PROYECTO: EL TREN DEL ORO - ENTREGA FINAL COMPLETA
+  PROYECTO: EL TREN DEL ORO
   ASIGNATURA: Algoritmos y Estructuras de Datos
   PROFESOR: Yisheng Leon Espinoza
-
-  DESCRIPCION:
-  Sistema de gestion de un juego de estrategia para dos jugadores:
-  Policias vs Ladrones en una red de metro. Implementa grafos
-  (estaciones conectadas) y listas enlazadas para gestionar
-  personajes, implementos y relaciones de juego.
-
-  CONDICIONES DE VICTORIA FINALES:
-  LADRONES GANAN si:
-    - Recolectan 15 o mas lingotes de oro (75% de 20)
-
-  POLICIAS HONESTOS GANAN si:
-    - Capturan 5 o mas ladrones
-    O capturan a ambos corruptos
-
-  POLICIAS CORRUPTOS GANAN si:
-    - Logran que escape entre 40% y 60% del oro (8-12 lingotes)
-
 ===================================================================*/
 
 #include <iostream>
@@ -32,7 +14,6 @@
 #include <cctype>
 #include <vector>
 #include <algorithm>
-#include <iomanip>
 
 using namespace std;
 
@@ -50,7 +31,7 @@ struct Implemento {
     int usosRestantes;
     Implemento* siguiente;
 
-    Implemento() : siguiente(nullptr) {}
+    Implemento() : idImplemento(0), usoMaximo(0), alcance(0), usosRestantes(0), siguiente(nullptr) {}
 };
 
 struct Personaje {
@@ -69,8 +50,10 @@ struct Personaje {
     Implemento* implementos;
     Personaje* siguiente;
 
-    Personaje() : siguiente(nullptr), implementos(nullptr),
-                  esCorrupto(false), oroTransportando(0) {}
+    Personaje() : idPersonaje(0), vidaActual(100), vidaMaxima(100),
+                  estado("Activo"), estacionActual(1), esCorrupto(false),
+                  oroTransportando(0), capacidadOro(0),
+                  implementos(nullptr), siguiente(nullptr) {}
 };
 
 struct Estacion {
@@ -82,14 +65,13 @@ struct Estacion {
         int destino;
         int distancia;
         Arista* siguiente;
-        Arista() : siguiente(nullptr) {}
+        Arista() : destino(0), distancia(0), siguiente(nullptr) {}
     };
 
     Arista* adyacentes;
     Estacion* siguiente;
 
-    Estacion() : siguiente(nullptr), adyacentes(nullptr),
-                 oroDisponible(0) {}
+    Estacion() : idEstacion(0), oroDisponible(0), adyacentes(nullptr), siguiente(nullptr) {}
 };
 
 struct RegistroBitacora {
@@ -99,7 +81,7 @@ struct RegistroBitacora {
     string resultado;
     RegistroBitacora* siguiente;
 
-    RegistroBitacora() : siguiente(nullptr) {}
+    RegistroBitacora() : turno(0), siguiente(nullptr) {}
 };
 
 struct SistemaJuego {
@@ -127,16 +109,8 @@ struct SistemaJuego {
 };
 
 // ===================================================================
-// FUNCIONES DE VALIDACION
+// VALIDACIONES / ENTRADAS SEGURAS
 // ===================================================================
-
-bool validacionEspacios(const string& str) {
-    if (str.empty()) return false;
-    for (char c : str)
-        if (!isspace(static_cast<unsigned char>(c)))
-            return false;
-    return true;
-}
 
 bool validacionNumeros(const string& str) {
     if (str.empty()) return false;
@@ -145,6 +119,45 @@ bool validacionNumeros(const string& str) {
             return false;
     return true;
 }
+
+int leerEnteroSeguro(const string& prompt) {
+    while (true) {
+        cout << prompt;
+        string s;
+        getline(cin, s);
+
+        // trim simple
+        while (!s.empty() && isspace((unsigned char)s.front())) s.erase(s.begin());
+        while (!s.empty() && isspace((unsigned char)s.back())) s.pop_back();
+
+        if (!validacionNumeros(s)) {
+            cout << "ERROR: Ingrese un numero valido.\n";
+            continue;
+        }
+
+        try {
+            return stoi(s);
+        } catch (...) {
+            cout << "ERROR: Numero fuera de rango.\n";
+        }
+    }
+}
+
+char leerSN(const string& prompt) {
+    while (true) {
+        cout << prompt;
+        string s;
+        getline(cin, s);
+        if (s.empty()) continue;
+        char c = (char)toupper((unsigned char)s[0]);
+        if (c == 'S' || c == 'N') return c;
+        cout << "ERROR: Responda S o N.\n";
+    }
+}
+
+// ===================================================================
+// BITACORA
+// ===================================================================
 
 void registrarBitacora(SistemaJuego& sistema, const string& accion,
                        const string& personaje, const string& resultado) {
@@ -158,7 +171,20 @@ void registrarBitacora(SistemaJuego& sistema, const string& accion,
 }
 
 // ===================================================================
-// FUNCIONES DE CARGA DE ARCHIVOS
+// AYUDANTE DE BUSQUEDA
+// ===================================================================
+
+Estacion* buscarEstacion(SistemaJuego& sistema, int idEstacion) {
+    Estacion* e = sistema.grafoEstaciones;
+    while (e) {
+        if (e->idEstacion == idEstacion) return e;
+        e = e->siguiente;
+    }
+    return nullptr;
+}
+
+// ===================================================================
+// CARGA DE ARCHIVOS
 // ===================================================================
 
 bool cargarImplementos(SistemaJuego& sistema, const string& nombreArchivo) {
@@ -170,11 +196,11 @@ bool cargarImplementos(SistemaJuego& sistema, const string& nombreArchivo) {
 
     int cantidad;
     archivo >> cantidad;
-    archivo.ignore();
+    archivo.ignore(numeric_limits<streamsize>::max(), '\n');
 
     for (int i = 0; i < cantidad; i++) {
         string linea;
-        getline(archivo, linea);
+        getline(archivo, linea); // separador "---" o linea vacia
 
         Implemento* nuevoImpl = new Implemento();
 
@@ -221,11 +247,11 @@ bool cargarPersonajes(SistemaJuego& sistema, const string& nombreArchivo) {
 
     int cantidad;
     archivo >> cantidad;
-    archivo.ignore();
+    archivo.ignore(numeric_limits<streamsize>::max(), '\n');
 
     for (int i = 0; i < cantidad; i++) {
         string linea;
-        getline(archivo, linea);
+        getline(archivo, linea); // separador "---" o vacia
 
         Personaje* nuevoPerso = new Personaje();
 
@@ -279,11 +305,11 @@ bool cargarMapa(SistemaJuego& sistema, const string& nombreArchivo) {
 
     int cantidad;
     archivo >> cantidad;
-    archivo.ignore();
+    archivo.ignore(numeric_limits<streamsize>::max(), '\n');
 
     for (int i = 0; i < cantidad; i++) {
         string linea;
-        getline(archivo, linea);
+        getline(archivo, linea); // separador "---" o vacia
 
         Estacion* nuevaEst = new Estacion();
 
@@ -292,10 +318,10 @@ bool cargarMapa(SistemaJuego& sistema, const string& nombreArchivo) {
 
         getline(archivo, nuevaEst->nombre);
 
-        getline(archivo, linea);
+        getline(archivo, linea); // "-"
         nuevaEst->oroDisponible = 0;
 
-        getline(archivo, linea);
+        getline(archivo, linea); // conexiones "5:3|12:6" o "-"
         if (linea != "-") {
             stringstream ss(linea);
             string conexion;
@@ -324,7 +350,48 @@ bool cargarMapa(SistemaJuego& sistema, const string& nombreArchivo) {
 }
 
 // ===================================================================
-// FUNCIONES DE INICIALIZACION
+// POSICIONAMIENTO INICIAL
+// ===================================================================
+
+void posicionarPersonajesInicio(SistemaJuego& sistema) {
+    cout << "\n=== POSICIONAMIENTO INICIAL ===\n";
+    cout << "Ingrese la estacion inicial (ID) para cada personaje.\n";
+    cout << "Puede ver los nombres desde 'Ver Mapa'.\n\n";
+
+    Personaje* p = sistema.listaPersonajes;
+    while (p) {
+        bool ok = false;
+        while (!ok) {
+            cout << "Personaje [" << p->idPersonaje << "] " << p->nombre
+                 << " (" << p->bando << ") -> Estacion inicial: ";
+
+            int idEst;
+            if (!(cin >> idEst)) {
+                cout << "ERROR: Ingrese un numero valido.\n";
+                cin.clear();
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                continue;
+            }
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+            Estacion* e = buscarEstacion(sistema, idEst);
+            if (!e) {
+                cout << "ERROR: Estacion no existe.\n";
+                continue;
+            }
+
+            p->estacionActual = idEst;
+            ok = true;
+            cout << "[OK] Asignado a estacion " << idEst << " (" << e->nombre << ")\n\n";
+        }
+        p = p->siguiente;
+    }
+
+    cout << "[OK] Posicionamiento completado.\n";
+}
+
+// ===================================================================
+// INICIALIZACION
 // ===================================================================
 
 void inicializarSistema(SistemaJuego& sistema) {
@@ -337,23 +404,19 @@ void inicializarSistema(SistemaJuego& sistema) {
     if (!cargarMapa(sistema, "Mapa.tren")) return;
 
     cout << "\n[SISTEMA] Identificando agentes infiltrados..." << endl;
-    Personaje* policias[100];
-    int contPolicia = 0;
 
+    vector<Personaje*> policias;
     Personaje* temp = sistema.listaPersonajes;
     while (temp) {
-        if (temp->bando == "Policia") {
-            policias[contPolicia++] = temp;
-        }
+        if (temp->bando == "Policia") policias.push_back(temp);
         temp = temp->siguiente;
     }
 
-    if (contPolicia >= 2) {
+    if (policias.size() >= 2) {
         srand(static_cast<unsigned>(time(nullptr)));
-        for (int i = 0; i < 2; i++) {
-            int indice = rand() % contPolicia;
-            policias[indice]->esCorrupto = true;
-        }
+        random_shuffle(policias.begin(), policias.end());
+        policias[0]->esCorrupto = true;
+        policias[1]->esCorrupto = true;
     }
 
     cout << "[SISTEMA] Distribuyendo oro en estaciones..." << endl;
@@ -373,31 +436,25 @@ void inicializarSistema(SistemaJuego& sistema) {
 
     cout << "\n[OK] SISTEMA INICIALIZADO CORRECTAMENTE" << endl;
     cout << "  - Total de oro distribuido: " << sistema.totalOro << " lingotes" << endl;
-    cout << "  - Estaciones creadas: [Consultar mapa]" << endl;
-    cout << "  - Personajes listos: [lista]" << endl;
-    cout << "  - Implementos disponibles: [lista]" << endl;
 }
 
 // ===================================================================
-// FUNCIONES DE CONDICIONES DE VICTORIA
+// VICTORIA
 // ===================================================================
 
 bool verificarVictoria(SistemaJuego& sistema) {
-    // CONDICION 1: LADRONES GANAN si recolectan 15+ lingotes (75%)
     if (sistema.oroRecuperado >= 15) {
         sistema.ganador = "LADRONES";
         sistema.faccionGanadora = "LADRONES";
         return true;
     }
 
-    // CONDICION 2: POLICIAS HONESTOS GANAN si capturan 5+ ladrones
     if (sistema.ladronesCapturados >= 5) {
         sistema.ganador = "POLICIAS_HONESTOS";
         sistema.faccionGanadora = "POLICIAS HONESTOS";
         return true;
     }
 
-    // CONDICION 3: POLICIAS CORRUPTOS GANAN si escape 40-60% oro (8-12 lingotes)
     int oroEscapado = sistema.totalOro - sistema.oroRecuperado;
     if (oroEscapado >= 8 && oroEscapado <= 12) {
         sistema.ganador = "POLICIAS_CORRUPTOS";
@@ -451,33 +508,30 @@ void mostrarBitacora(SistemaJuego& sistema) {
         return;
     }
 
-    // Invertir bitacora (fue insertada al inicio)
     RegistroBitacora* registros[1000];
     int contador = 0;
     RegistroBitacora* temp = sistema.bitacora;
-    while (temp) {
+    while (temp && contador < 1000) {
         registros[contador++] = temp;
         temp = temp->siguiente;
     }
 
-    cout << "\n" << setw(8) << "Turno" << setw(20) << "Personaje"
-         << setw(25) << "Accion" << setw(30) << "Resultado" << endl;
-    cout << string(90, '-') << endl;
+    cout << "\nTurno | Personaje | Accion | Resultado\n";
+    cout << "-----------------------------------------------\n";
 
     for (int i = contador - 1; i >= 0; i--) {
-        cout << setw(8) << registros[i]->turno
-             << setw(20) << registros[i]->personaje
-             << setw(25) << registros[i]->accion
-             << setw(30) << registros[i]->resultado << endl;
+        cout << registros[i]->turno << " | "
+             << registros[i]->personaje << " | "
+             << registros[i]->accion << " | "
+             << registros[i]->resultado << endl;
     }
 
-    cout << string(90, '-') << endl;
     cout << "\nPresione ENTER para volver al menu..." << endl;
     cin.ignore();
 }
 
 // ===================================================================
-// FUNCIONES DE CONSULTA Y DISPLAY
+// CONSULTA / DISPLAY
 // ===================================================================
 
 void mostrarPersonajes(SistemaJuego& sistema) {
@@ -491,21 +545,19 @@ void mostrarPersonajes(SistemaJuego& sistema) {
         return;
     }
 
-    cout << "\n" << setw(5) << "ID" << setw(15) << "Nombre"
-         << setw(12) << "Bando" << setw(15) << "Estado"
-         << setw(12) << "Vida" << setw(12) << "Estacion" << endl;
-    cout << string(75, '-') << endl;
-
     while (temp) {
-        cout << setw(5) << temp->idPersonaje
-             << setw(15) << temp->nombre
-             << setw(12) << temp->bando
-             << setw(15) << temp->estado
-             << setw(12) << temp->vidaActual << "/" << temp->vidaMaxima
-             << setw(12) << temp->estacionActual << endl;
+        cout << "ID: " << temp->idPersonaje
+             << " | " << temp->nombre
+             << " | Bando: " << temp->bando
+             << " | Estado: " << temp->estado
+             << " | Vida: " << temp->vidaActual << "/" << temp->vidaMaxima
+             << " | Estacion: " << temp->estacionActual;
+        if (temp->bando == "Policia" && temp->esCorrupto) cout << " [CORRUPTO]";
+        if (temp->oroTransportando > 0) cout << " [ORO:" << temp->oroTransportando << "]";
+        cout << endl;
+
         temp = temp->siguiente;
     }
-    cout << string(75, '-') << endl;
 }
 
 void mostrarImplementos(SistemaJuego& sistema) {
@@ -519,21 +571,16 @@ void mostrarImplementos(SistemaJuego& sistema) {
         return;
     }
 
-    cout << "\n" << setw(5) << "ID" << setw(20) << "Nombre"
-         << setw(15) << "Tipo" << setw(20) << "Funcion"
-         << setw(10) << "Usos" << setw(10) << "Alcance" << endl;
-    cout << string(80, '-') << endl;
-
     while (temp) {
-        cout << setw(5) << temp->idImplemento
-             << setw(20) << temp->nombre
-             << setw(15) << temp->tipoUsuario
-             << setw(20) << temp->funcion
-             << setw(10) << temp->usosRestantes
-             << setw(10) << temp->alcance << endl;
+        cout << "ID: " << temp->idImplemento
+             << " | " << temp->nombre
+             << " | Usuario: " << temp->tipoUsuario
+             << " | Funcion: " << temp->funcion
+             << " | Usos: " << temp->usosRestantes
+             << " | Alcance: " << temp->alcance << endl;
+
         temp = temp->siguiente;
     }
-    cout << string(80, '-') << endl;
 }
 
 void mostrarMapa(SistemaJuego& sistema) {
@@ -547,33 +594,30 @@ void mostrarMapa(SistemaJuego& sistema) {
         return;
     }
 
-    cout << "\n" << setw(5) << "ID" << setw(25) << "Nombre"
-         << setw(12) << "Oro" << setw(20) << "Conexiones" << endl;
-    cout << string(75, '-') << endl;
-
     while (temp) {
-        cout << setw(5) << temp->idEstacion
-             << setw(25) << temp->nombre
-             << setw(12) << temp->oroDisponible;
+        cout << "Estacion " << temp->idEstacion << " - " << temp->nombre
+             << " | Oro: " << temp->oroDisponible << " | Conexiones: ";
 
-        cout << setw(5) << "[";
         Estacion::Arista* arista = temp->adyacentes;
-        bool primera = true;
-        while (arista) {
-            if (!primera) cout << ", ";
-            cout << arista->destino;
-            primera = false;
-            arista = arista->siguiente;
+        if (!arista) {
+            cout << "-";
+        } else {
+            bool primera = true;
+            while (arista) {
+                if (!primera) cout << " | ";
+                cout << arista->destino << ":" << arista->distancia;
+                primera = false;
+                arista = arista->siguiente;
+            }
         }
-        cout << "]" << endl;
+        cout << endl;
 
         temp = temp->siguiente;
     }
-    cout << string(75, '-') << endl;
 }
 
 // ===================================================================
-// FUNCIONES DEL JUEGO
+// JUEGO
 // ===================================================================
 
 void mostrarEstadoPartida(SistemaJuego& sistema) {
@@ -598,7 +642,7 @@ void mostrarPersonajesActivos(SistemaJuego& sistema) {
                  << " (" << temp->bando << ") - Estacion "
                  << temp->estacionActual << " - Vida: "
                  << temp->vidaActual << "/" << temp->vidaMaxima;
-            if (temp->esCorrupto) cout << " [CORRUPTO]";
+            if (temp->bando == "Policia" && temp->esCorrupto) cout << " [CORRUPTO]";
             if (temp->oroTransportando > 0) cout << " [LLEVA " << temp->oroTransportando << " ORO]";
             cout << endl;
             contador++;
@@ -638,8 +682,27 @@ Personaje* seleccionarPersonaje(SistemaJuego& sistema) {
     return nullptr;
 }
 
+int contarAdyacentes(Estacion* est) {
+    int c = 0;
+    Estacion::Arista* a = est ? est->adyacentes : nullptr;
+    while (a) { c++; a = a->siguiente; }
+    return c;
+}
+
+Estacion::Arista* obtenerAristaPorIndice(Estacion* est, int idx1based) {
+    if (!est || idx1based <= 0) return nullptr;
+    int c = 1;
+    Estacion::Arista* a = est->adyacentes;
+    while (a) {
+        if (c == idx1based) return a;
+        c++;
+        a = a->siguiente;
+    }
+    return nullptr;
+}
+
 void mostrarEstacionesConexas(SistemaJuego& sistema, int idEstacionActual) {
-    Estacion* est = sistema.grafoEstaciones;
+    Estacion* est = buscarEstacion(sistema, idEstacionActual);
 
     while (est) {
         if (est->idEstacion == idEstacionActual) {
@@ -653,23 +716,46 @@ void mostrarEstacionesConexas(SistemaJuego& sistema, int idEstacionActual) {
             }
 
             while (arista) {
-                Estacion* destino = sistema.grafoEstaciones;
-                while (destino) {
-                    if (destino->idEstacion == arista->destino) {
-                        cout << contador << ". Estacion " << arista->destino
-                             << " (" << destino->nombre << ") - Distancia: "
-                             << arista->distancia << " - Oro: "
-                             << destino->oroDisponible << endl;
-                        contador++;
-                        break;
-                    }
-                    destino = destino->siguiente;
+                Estacion* destino = buscarEstacion(sistema, arista->destino);
+                if (destino) {
+                    cout << contador << ". Estacion " << arista->destino
+                         << " (" << destino->nombre << ") - Distancia: "
+                         << arista->distancia << " - Oro: "
+                         << destino->oroDisponible << endl;
+                } else {
+                    cout << contador << ". Estacion " << arista->destino
+                         << " (Desconocida) - Distancia: " << arista->distancia << endl;
                 }
+                contador++;
                 arista = arista->siguiente;
             }
             return;
         }
         est = est->siguiente;
+    }
+}
+
+void aplicarRecoleccionSiCorresponde(SistemaJuego& sistema, Personaje* personaje) {
+    if (!personaje) return;
+    Estacion* est = buscarEstacion(sistema, personaje->estacionActual);
+    if (!est) return;
+
+    if (personaje->bando == "Ladron" && est->oroDisponible > 0) {
+        int espacio = personaje->capacidadOro - personaje->oroTransportando;
+        if (espacio <= 0) {
+            cout << "[INFO] No tiene capacidad para cargar mas oro." << endl;
+            return;
+        }
+
+        int oroTomado = min(est->oroDisponible, espacio);
+        personaje->oroTransportando += oroTomado;
+        est->oroDisponible -= oroTomado;
+        sistema.oroRecuperado += oroTomado;
+
+        cout << "[OK] " << personaje->nombre << " tomo " << oroTomado << " lingotes de oro!" << endl;
+
+        string resultado_oro = "Recolecto " + to_string(oroTomado) + " oro";
+        registrarBitacora(sistema, "Recoleccion", personaje->nombre, resultado_oro);
     }
 }
 
@@ -684,70 +770,85 @@ void turnoJugador(SistemaJuego& sistema) {
         return;
     }
 
+    // Pedir distancia maxima del turno (entero)
+    int distanciaMax = -1;
+    while (distanciaMax < 0) {
+        distanciaMax = leerEnteroSeguro("\nIngrese la distancia maxima que puede recorrer este turno (entero >= 0): ");
+        if (distanciaMax < 0) cout << "ERROR: La distancia no puede ser negativa.\n";
+    }
+
+    int distanciaRestante = distanciaMax;
+
     cout << "\nPersonaje seleccionado: " << personaje->nombre << endl;
     cout << "Ubicacion actual: Estacion " << personaje->estacionActual << endl;
+    cout << "Distancia disponible este turno: " << distanciaRestante << endl;
 
-    mostrarEstacionesConexas(sistema, personaje->estacionActual);
+    // Permitir múltiples movimientos mientras haya distancia y el usuario quiera
+    while (true) {
+        if (distanciaRestante <= 0) {
+            cout << "\n[INFO] Distancia agotada. Fin del turno.\n";
+            return;
+        }
 
-    cout << "\nSeleccione estacion destino (numero): ";
-    int opcion;
+        Estacion* estActual = buscarEstacion(sistema, personaje->estacionActual);
+        if (!estActual) {
+            cout << "ERROR: Estacion actual invalida.\n";
+            return;
+        }
 
-    if (!(cin >> opcion)) {
-        cout << "ERROR: Ingrese un numero valido." << endl;
-        cin.clear();
-        cin.ignore(numeric_limits<streamsize>::max(), '\n');
-        return;
-    }
-    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        int totalOps = contarAdyacentes(estActual);
+        if (totalOps == 0) {
+            cout << "\n[INFO] No hay conexiones desde esta estacion. Fin del turno.\n";
+            return;
+        }
 
-    Estacion* estActual = sistema.grafoEstaciones;
-    while (estActual) {
-        if (estActual->idEstacion == personaje->estacionActual) {
-            Estacion::Arista* arista = estActual->adyacentes;
-            int contador = 1;
+        mostrarEstacionesConexas(sistema, personaje->estacionActual);
 
-            while (arista) {
-                if (contador == opcion) {
-                    personaje->estacionActual = arista->destino;
-                    cout << "\n[OK] " << personaje->nombre << " se movio a Estacion "
-                         << arista->destino << endl;
-
-                    // Registrar en bitacora
-                    string resultado = "Movimiento a estacion " + to_string(arista->destino);
-                    registrarBitacora(sistema, "Movimiento", personaje->nombre, resultado);
-
-                    Estacion* destino = sistema.grafoEstaciones;
-                    while (destino) {
-                        if (destino->idEstacion == arista->destino) {
-                            if (destino->oroDisponible > 0 && personaje->bando == "Ladron") {
-                                int oroTomado = min(destino->oroDisponible,
-                                                    personaje->capacidadOro - personaje->oroTransportando);
-                                personaje->oroTransportando += oroTomado;
-                                destino->oroDisponible -= oroTomado;
-                                cout << "[OK] " << personaje->nombre << " tomo "
-                                     << oroTomado << " lingotes de oro!" << endl;
-
-                                sistema.oroRecuperado += oroTomado;
-
-                                // Registrar en bitacora
-                                string resultado_oro = "Recolecto " + to_string(oroTomado) + " oro";
-                                registrarBitacora(sistema, "Recoleccion", personaje->nombre, resultado_oro);
-                            }
-                            break;
-                        }
-                        destino = destino->siguiente;
-                    }
-                    return;
-                }
-                contador++;
-                arista = arista->siguiente;
+        int opcion = -1;
+        while (true) {
+            opcion = leerEnteroSeguro("\nSeleccione estacion destino (numero de la lista): ");
+            if (opcion < 1 || opcion > totalOps) {
+                cout << "ERROR: Opcion fuera de rango (1-" << totalOps << ").\n";
+                continue;
             }
             break;
         }
-        estActual = estActual->siguiente;
-    }
 
-    cout << "ERROR: Estacion no disponible." << endl;
+        Estacion::Arista* aristaElegida = obtenerAristaPorIndice(estActual, opcion);
+        if (!aristaElegida) {
+            cout << "ERROR: Conexion invalida.\n";
+            continue;
+        }
+
+        // VALIDACION PRINCIPAL: distancia del arco vs distancia restante
+        if (aristaElegida->distancia > distanciaRestante) {
+            cout << "\n[ERROR] No puedes moverte a esa estacion.\n";
+            cout << "Distancia requerida: " << aristaElegida->distancia << "\n";
+            cout << "Distancia disponible: " << distanciaRestante << "\n";
+            cout << "Elige otra conexion.\n";
+            continue;
+        }
+
+        // Ejecutar movimiento
+        personaje->estacionActual = aristaElegida->destino;
+        distanciaRestante -= aristaElegida->distancia;
+
+        cout << "\n[OK] " << personaje->nombre << " se movio a Estacion "
+             << aristaElegida->destino << endl;
+        cout << "[INFO] Distancia consumida: " << aristaElegida->distancia
+             << " | Distancia restante: " << distanciaRestante << endl;
+
+        registrarBitacora(sistema, "Movimiento", personaje->nombre,
+                          "Movimiento a estacion " + to_string(aristaElegida->destino) +
+                          " (dist " + to_string(aristaElegida->distancia) + ")");
+
+        // Recoleccion automática si es ladrón y hay oro
+        aplicarRecoleccionSiCorresponde(sistema, personaje);
+
+        // Preguntar si quiere seguir moviendo
+        char seguir = leerSN("\nDesea seguir moviendose en este turno? (S/N): ");
+        if (seguir == 'N') return;
+    }
 }
 
 void juegoInteractivo(SistemaJuego& sistema) {
@@ -755,8 +856,12 @@ void juegoInteractivo(SistemaJuego& sistema) {
     sistema.turnoActual = 1;
     int opcionMenu = -1;
 
+    char resp = leerSN("\nDesea posicionar manualmente los personajes antes de iniciar? (S/N): ");
+    if (resp == 'S') {
+        posicionarPersonajesInicio(sistema);
+    }
+
     while (sistema.juegoEnCurso) {
-        // VERIFICAR CONDICIONES DE VICTORIA
         if (verificarVictoria(sistema)) {
             sistema.turnosJugados = sistema.turnoActual;
             mostrarPantallaVictoria(sistema);
@@ -814,7 +919,7 @@ void juegoInteractivo(SistemaJuego& sistema) {
 }
 
 // ===================================================================
-// FUNCIONES DEL MENU PRINCIPAL
+// MENU PRINCIPAL
 // ===================================================================
 
 void mostrarMenuPrincipal(SistemaJuego& sistema) {
@@ -863,7 +968,7 @@ void mostrarMenuPrincipal(SistemaJuego& sistema) {
 }
 
 // ===================================================================
-// FUNCION PRINCIPAL
+// MAIN
 // ===================================================================
 
 int main() {
